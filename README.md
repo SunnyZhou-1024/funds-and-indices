@@ -11,6 +11,7 @@
 ```bash
 git clone https://github.com/SunnyZhou-1024/funds-and-indices.git 
 cd funds-and-indices
+pip install -r requirements.txt
 python main.py
 ```
 
