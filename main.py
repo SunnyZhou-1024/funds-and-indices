@@ -40,7 +40,6 @@ def main():
     timestamp = time.time()
     timestamp = str(int(timestamp))
     funds_info = open(os.path.join('data', 'fundsdetails-%s.json' % timestamp), 'w')
-    checkpoint_file = open(os.path.join('data', 'checkpoint.txt'), 'w')
     #funds_info_csv = csv.DictWriter(funds_info, ['基金代码'， '基金名字'， '成立日期',
     #                                        '基金经理', '基金规模'， '跟踪指数', '基金类型', ''])
     keys = ['基金代码', '基金名称拼音首字母', '基金名称', '基金类型', '基金名称全拼']
@@ -65,15 +64,14 @@ def main():
             funds_info.write('\n')
             funds_info.flush()
 
-            checkpoint_file.write(json.dumps(checkpoint))
-            checkpoint_file.flush()
+            with open(os.path.join('data', 'checkpoint.txt'), 'w') as checkpoint_file:
+                checkpoint_file.write(json.dumps(checkpoint))
 
         except Exception as e:
             print(str(e))
             pass
 
     funds_info.close()
-    checkpoint_file.close()
 
 
 
