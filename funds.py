@@ -47,8 +47,9 @@ def fetch_net_worth_history(fund_code, fund_name, start_date, end_date=None, ver
         print('Fetching net worth history of %s from %s to %s. Done.' % (fund_code, start_date, end))
     else:
         print('Fetch net worth history of %s fail.' % fund_name)
+        return None
 
-    return 
+    return file_name
 
 def get_all_funds_code_and_name(file=None):
     headers = {
@@ -80,29 +81,58 @@ def fetch_fund_basic_info(code):
 
     resp = _get(url)
     html = etree.HTML(resp.text)
-    sourcerate = html.xpath('//b[@class="sourcerate"]')[0]
-    label = sourcerate.xpath('parent::*')[0]
-    discount = label.xpath('//b[@class="red"]')
-    discount = discount[0].text if discount else 10 # 10: no discount
 
-    tmp = html.xpath('//div[@class="bs_gl"]')[0]
-    tmp = tmp.xpath('p')[0]
-    raw_metas = tmp.xpath('child::*')
-    establish_date = raw_metas[0].xpath('span')[0]
-    manager = raw_metas[1].xpath('a')[0]
-    fund_type = raw_metas[2].xpath('span')[0]
-    company = raw_metas[3].xpath('a')[0]
-    amount = raw_metas[4].xpath('span')[0]
-    amount = re.search('\d+\.?\d*', amount.text).group(0)
+    sourcerate = html.xpath('//b[@class="sourcerate"]')
+
+    if len(sourcerate) > 0:
+
+        label = sourcerate[0].xpath('parent::*')[0]
+        discount = label.xpath('//b[@class="red"]')
+        discount = discount[0].text if discount else 10 # 10: no discount
+        sourcerate = sourcerate[0].text
+
+    else:
+        sourcerate = None
+        discount = None # undefined
+
+    # tmp = html.xpath('//div[@class="bs_gl"]')[0]
+    # tmp = tmp.xpath('p')[0]
+    # raw_metas = tmp.xpath('child::*')
+    # establish_date = raw_metas[0].xpath('span')[0]
+    # manager = raw_metas[1].xpath('a')[0]
+    # fund_type = raw_metas[2].xpath('span')[0]
+    # company = raw_metas[3].xpath('a')[0]
+    # amount = raw_metas[4].xpath('span')[0]
+    # amount = re.search('\d+\.?\d*', amount.text).group(0)
 
     # locate to the summary 
     tables = html.xpath('//div[@class="detail"]/div[@class="txt_cont"]//div[@class="box"]')
-    last_row = tables[0].xpath('table//tr')[-1]
+    rows = tables[0].xpath('table//tr')
+    date_row = rows[2]
+    date_cell = date_row.xpath('td')[0]
+    establish_date = re.search('\d{4}年\d{2}月\d{2}', date_cell.text).group(0)
+    manager_cell = rows[5].xpath('td')[0]
+    manager = manager_cell.xpath('a')[0]
+    company_cell = rows[4].xpath('td')[0]
+    company = company_cell.xpath('a')[0]
+    host_cell = rows[4].xpath('td')[1]
+    host = host_cell.xpath('a')[0]
+    amount_cell = rows[3].xpath('td')[0]
+    amount = re.search('\d+\.?\d*', amount_cell.text).group(0)
+    #fund_type = rows[1].xpath('td')[1]
+
+    last_row = rows[-1]
     last_cell = last_row.xpath('td')[-1]
     index = last_cell.text
+
+    establish_date = establish_date.replace('年', '-')
+    establish_date = establish_date.replace('月', '-')
+    establish_date = establish_date.replace('日', '-')
     print('Fetching basic info of %s. Done.' % code)
 
-    return [establish_date.text, manager.text, fund_type.text, company.text, amount, index]
+    return {'成立日期': establish_date, '基金经理': manager.text, #'基金类型':fund_type.text, 
+            '原始费率': sourcerate, '折扣': discount, '基金公司': company.text, 
+            '基金规模':amount, '跟踪指数': index}
 
 def fetch_fees(code):
     result = []
