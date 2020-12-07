@@ -12,7 +12,8 @@ def ensure_enviroments():
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Parse arguments of this program.')
-    parser.add_argument('--reentry', default=True, help='Start from the stop point of most recent time.')
+    parser.add_argument('--reentry', type=bool, default=True, help='Start from the stop point of most recent time.')
+    parser.add_argument('--update', type=bool, default=True, help='Update existing info to newest status.')
     return parser.parse_args()
 
 
@@ -46,16 +47,12 @@ def main():
 
     #all_funds = all_funds[checkpoint: ]
     for item in all_funds:
-        if item[0] in checkpoint:
+        if item[0]  not in checkpoint:
             continue
         try:
-            checkpoint.append(item[0])
             basic_info = fetch_fund_basic_info(item[0])
             fees = fetch_fees(item[0])
             history = fetch_net_worth_history(item[0], item[2], basic_info['成立日期'], None)
-            #funds_info_csv.writerow({ '基金代码': ， '基金名字'， '成立日期',
-            #                                '基金经理', '基金规模'， '跟踪指数', '基金类型'
-            #})
 
             basic = {**dict(zip(keys, item)), **basic_info}
             fund = {'基本概况': basic, '费率详情': fees, '历史净值地址': history}
@@ -63,6 +60,7 @@ def main():
             funds_info.write(fund_str)
             funds_info.write('\n')
             funds_info.flush()
+            checkpoint.append(item[0])
 
             with open(os.path.join('data', 'checkpoint.txt'), 'w') as checkpoint_file:
                 checkpoint_file.write(json.dumps(checkpoint))

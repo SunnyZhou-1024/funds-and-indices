@@ -109,8 +109,9 @@ def fetch_fund_basic_info(code):
     tables = html.xpath('//div[@class="detail"]/div[@class="txt_cont"]//div[@class="box"]')
     rows = tables[0].xpath('table//tr')
     date_row = rows[2]
-    date_cell = date_row.xpath('td')[0]
-    establish_date = re.search('\d{4}年\d{2}月\d{2}', date_cell.text).group(0)
+    date_cell = date_row.xpath('td')
+    if len(date_cell) > 0:
+        establish_date = re.search('\d{4}年\d{2}月\d{2}', date_cell[0].text).group(0)
     manager_cell = rows[5].xpath('td')[0]
     manager = manager_cell.xpath('a')[0]
     company_cell = rows[4].xpath('td')[0]
@@ -135,6 +136,7 @@ def fetch_fund_basic_info(code):
             '基金规模':amount, '跟踪指数': index}
 
 def fetch_fees(code):
+    print('Fetching fees of %s.' % code)
     result = []
     url = 'http://fundf10.eastmoney.com/jjfl_%s.html'  % code
     resp = _get(url)
@@ -143,36 +145,40 @@ def fetch_fees(code):
 
     # 交易状态
     status = boxs[0].xpath('div//td[@class="w135"]')
-    buy_status = status[0]
-    sell_status = status[1]
-    result.extend([{'申购状态': buy_status.text, '赎回状态': sell_status.text}])
+    if len(status) > 0:
+        buy_status = status[0]
+        sell_status = status[1]
+        result.extend([{'申购状态': buy_status.text, '赎回状态': sell_status.text}])
 
     # 申购与赎回金额
     buy_and_sell = boxs[1].xpath('div//td[@class="w135"]')
-    least_buying = buy_and_sell[0] # 申购起点
-    least_fixed = buy_and_sell[1] # 最小定投
-    day_limit = buy_and_sell[2] # 单日限额
-    least_amount_at_first = buy_and_sell[3] # 首次购买
-    min_append = buy_and_sell[4] # 追加购买
-    max_position = buy_and_sell[5] # 最大持仓
-    least_sell = buy_and_sell[6] # 最小赎回份额
-    least_holding_after_sell = buy_and_sell[7] # 赎回后最小持有份额
-    result.append({'申购起点': least_buying.text, '最小定投': least_fixed.text, '单日限额': day_limit.text,
-                    '首次购买': least_amount_at_first.text, '追加购买': min_append.text, 
-                    '最大持仓': max_position.text,
-                    '最小赎回份额': least_sell.text, '部分赎回后最低保留份额': least_holding_after_sell.text})
+    if len(buy_and_sell) > 0:
+        least_buying = buy_and_sell[0] # 申购起点
+        least_fixed = buy_and_sell[1] # 最小定投
+        day_limit = buy_and_sell[2] # 单日限额
+        least_amount_at_first = buy_and_sell[3] # 首次购买
+        min_append = buy_and_sell[4] # 追加购买
+        max_position = buy_and_sell[5] # 最大持仓
+        least_sell = buy_and_sell[6] # 最小赎回份额
+        least_holding_after_sell = buy_and_sell[7] # 赎回后最小持有份额
+        result.append({'申购起点': least_buying.text, '最小定投': least_fixed.text, '单日限额': day_limit.text,
+                        '首次购买': least_amount_at_first.text, '追加购买': min_append.text, 
+                        '最大持仓': max_position.text,
+                        '最小赎回份额': least_sell.text, '部分赎回后最低保留份额': least_holding_after_sell.text})
     # 交易确认日
     comfirm = boxs[2].xpath('div//td')
-    buy_comfirm = comfirm[1]
-    sell_comfirm = comfirm[3]
-    result.append({'买入确认日': buy_comfirm.text, '卖出确认日': sell_comfirm.text})
+    if len(comfirm) > 0:
+        buy_comfirm = comfirm[1]
+        sell_comfirm = comfirm[3]
+        result.append({'买入确认日': buy_comfirm.text, '卖出确认日': sell_comfirm.text})
 
     # 运作费率
     operating_fees = boxs[3].xpath('div//td[@class="w135"]')
-    managing_fee = operating_fees[0]
-    hosting_fee = operating_fees[1]
-    selling_fee = operating_fees[2]
-    result.append({'管理费': managing_fee.text, '托管费': hosting_fee.text, '销售服务费': selling_fee.text})
+    if len(operating_fees) > 0:
+        managing_fee = operating_fees[0]
+        hosting_fee = operating_fees[1]
+        selling_fee = operating_fees[2]
+        result.append({'管理费': managing_fee.text, '托管费': hosting_fee.text, '销售服务费': selling_fee.text})
 
     def _get_fees(html):
     
@@ -194,18 +200,22 @@ def fetch_fees(code):
         return items
     
     # 认购费率
-    result.append({'认购费率（前端）': _get_fees(boxs[4])})
-    # 申购费率
-    result.append({'申购费率（前端）': _get_fees(boxs[5])})
-    # 赎回费率
-    result.append({'赎回费率': _get_fees(boxs[6])})
+    if len(boxs) > 4:
+        result.append({'认购费率（前端）': _get_fees(boxs[4])})
+        # 申购费率
+    if len(boxs) > 5:
+        result.append({'申购费率（前端）': _get_fees(boxs[5])})
+        # 赎回费率
+    if len(boxs) > 6:
+        result.append({'赎回费率': _get_fees(boxs[6])})
 
+    print('Fetching fees of %s. Done.' % code)
     return result
 
 def fetch_top10stock(code):
     pass
 
-#fetch_fees('501005')
+fetch_fees('588090')
 # fetch_fund_basic_info('501008')
 # get_all_funds_code_and_name()
-#fetch_net_worth_history('001632', '天弘中证食品饮料指数C', '2011-01-01', None)
+# fetch_net_worth_history('590001', '天弘中证食品饮料指数C', '2011-01-01', None)
