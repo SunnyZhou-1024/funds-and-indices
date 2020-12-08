@@ -5,6 +5,7 @@ import csv
 import re
 import os
 
+from .common import *
 from lxml import etree
 
 class FetchingError(Exception):
@@ -24,30 +25,44 @@ def _get(url):
             return resp
     raise FetchingError('Fetch %s fail in 3 times.' % url)
 
-def fetch_net_worth_history(fund_code, fund_name, start_date, end_date=None, verbose=None):
+def fetch_net_worth_history(fund_code, fund_name, start_date, end_date=None, is_update=False verbose=None):
     end = end_date
     if end_date is None:
         end = time.strftime('%Y-%m-%d') # today
-    print('Fetching net worth history of %s from %s to %s.' % (fund_code, start_date, end))
-    url = "http://api.fund.eastmoney.com/f10/lsjz?callback=callback' \
-        '&fundCode=%s&pageIndex=1&pageSize=20&startDate=%s&endDate=%s_=%s"
-    timestamp = time.time() 
-    timestamp = int(timestamp * 1000)
-    url = url % (fund_code, start_date, end, str(timestamp))
-    resp = _get(url)
-    text = resp.text
-    matches = re.search('\{.*\}', text)
-    history_str = matches.group(0)
-    history_json = json.loads(history_str)
-    if history_json['ErrCode'] == 0:
-        file_name = '%s-%s-%s-%s.json' % (fund_code, fund_name, start_date, end)
-        file_name = os.path.join('data', file_name)
-        with open(file_name, 'w') as f:
-            f.write(history_str)
-        print('Fetching net worth history of %s from %s to %s. Done.' % (fund_code, start_date, end))
-    else:
-        print('Fetch net worth history of %s fail.' % fund_name)
-        return None
+    def _get_page(fund_code, start_date, end_date, index, size):
+
+        print('Fetching net worth history of %s from %s to %s. Page %s.' % (fund_code, start_date, end_date, index))
+        url = "http://api.fund.eastmoney.com/f10/lsjz?callback=callback' \
+            '&fundCode=%s&pageIndex=%s&pageSize=%s&startDate=%s&endDate=%s_=%s"
+        timestamp = time.time() 
+        timestamp = int(timestamp * 1000)
+        url = url % (fund_code, index, size, start_date, end_date, str(timestamp))
+        resp = _get(url)
+        text = resp.text
+        matches = re.search('\{.*\}', text)
+        history_str = matches.group(0)
+        history_json = json.loads(history_str)
+        total_count = history_json['TotalCount']
+        data = history_json['Data']
+        error_code = history_json['ErrCode']
+
+        return error_code, total_count, data
+    
+    index = 1
+    total_count = 1000 # must larger size
+    size = 260 # there are about 260 workday per year
+
+    file_name = '%s-%s-%s-%s.json' % (fund_code, fund_name, start_date, end)
+    file_name = os.path.join('data', file_name)
+    with open(file_name, 'a' if is_update else 'w', newline='') as f:
+        while index * size < total_count:
+            err_code, total_count, data = _get_page(fund_code, start_date, end, index, size)
+            if err_code == 0:
+                f.write(json.dumps(data, ensure_ascii=False))
+                print('Fetching net worth history of %s from %s to %s. Page %s. Done.' % (fund_code, start_date, end, index))
+            else:
+                print('Fetch net worth history of %s at page %s fail.' % (fund_name, index))
+            index = index + 1
 
     return file_name
 
@@ -61,7 +76,7 @@ def get_all_funds_code_and_name(file=None):
     json_obj = json.loads(text)
     print('Saving all funds info to %s.' % file)
     if file is None:
-        file = os.path.join('data', 'fundlist.csv')
+        file = os.path.join('data', fund_list_file)
     with open(file, 'w', newline='') as f:
         csv_file = csv.DictWriter(f, ['CODE', 'NAME', 'TYPE'])
         csv_file.writeheader()
@@ -215,7 +230,7 @@ def fetch_fees(code):
 def fetch_top10stock(code):
     pass
 
-fetch_fees('588090')
+#fetch_fees('588090')
 # fetch_fund_basic_info('501008')
 # get_all_funds_code_and_name()
 # fetch_net_worth_history('590001', '天弘中证食品饮料指数C', '2011-01-01', None)

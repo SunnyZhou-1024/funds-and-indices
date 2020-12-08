@@ -3,8 +3,10 @@ import csv
 import os
 import sys
 import time
+import json
 
-from funds import *
+from src.funds.common import details_of_fund_file
+from src.funds.funds import *
 
 def ensure_enviroments():
     if not os.path.exists('data'):
@@ -38,9 +40,7 @@ def main():
     all_funds = get_all_funds_code_and_name()
 
 
-    timestamp = time.time()
-    timestamp = str(int(timestamp))
-    funds_info = open(os.path.join('data', 'fundsdetails-%s.json' % timestamp), 'w')
+    funds_info = open(os.path.join('data', details_of_fund_file), 'w')
     #funds_info_csv = csv.DictWriter(funds_info, ['基金代码'， '基金名字'， '成立日期',
     #                                        '基金经理', '基金规模'， '跟踪指数', '基金类型', ''])
     keys = ['基金代码', '基金名称拼音首字母', '基金名称', '基金类型', '基金名称全拼']
@@ -52,9 +52,10 @@ def main():
         try:
             basic_info = fetch_fund_basic_info(item[0])
             fees = fetch_fees(item[0])
-            history = fetch_net_worth_history(item[0], item[2], basic_info['成立日期'], None)
+            today = time.strftime('%Y-%m-%d')
+            history = fetch_net_worth_history(item[0], item[2], basic_info['成立日期'], today)
 
-            basic = {**dict(zip(keys, item)), **basic_info}
+            basic = {**dict(zip(keys, item)), **basic_info, **{'最后获取日期': today}}
             fund = {'基本概况': basic, '费率详情': fees, '历史净值地址': history}
             fund_str = json.dumps(fund, ensure_ascii=False)
             funds_info.write(fund_str)
