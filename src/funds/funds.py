@@ -25,7 +25,7 @@ def _get(url):
             return resp
     raise FetchingError('Fetch %s fail in 3 times.' % url)
 
-def fetch_net_worth_history(fund_code, fund_name, start_date, end_date=None, is_update=False verbose=None):
+def fetch_net_worth_history(fund_code, fund_name, start_date, end_date=None, is_update=False, verbose=None):
     end = end_date
     if end_date is None:
         end = time.strftime('%Y-%m-%d') # today
@@ -54,11 +54,12 @@ def fetch_net_worth_history(fund_code, fund_name, start_date, end_date=None, is_
 
     file_name = '%s-%s-%s-%s.json' % (fund_code, fund_name, start_date, end)
     file_name = os.path.join('data', file_name)
-    with open(file_name, 'a' if is_update else 'w', newline='') as f:
+    with open(file_name, 'a' if is_update else 'w') as f:
         while index * size < total_count:
             err_code, total_count, data = _get_page(fund_code, start_date, end, index, size)
             if err_code == 0:
                 f.write(json.dumps(data, ensure_ascii=False))
+                f.write('\n')
                 print('Fetching net worth history of %s from %s to %s. Page %s. Done.' % (fund_code, start_date, end, index))
             else:
                 print('Fetch net worth history of %s at page %s fail.' % (fund_name, index))
