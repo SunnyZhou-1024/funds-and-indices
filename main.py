@@ -54,14 +54,18 @@ def main():
                 checkpoint.extend(json.loads(fetched))
         all_funds = get_all_funds_code_and_name()
         
-    if args.update:
+    elif args.update:
         all_funds = extract_brief_info(os.path.join('data', details_of_fund_file), logger)
         checkpoint = []
 
-    if args.scan:
+    elif args.scan:
         exist = extract_brief_info(os.path.join('data', details_of_fund_file), logger)
         checkpoint = [ fund[0] for fund in exist]
         all_funds = get_all_funds_code_and_name()
+
+    else:
+        all_funds = get_all_funds_code_and_name()
+        checkpoint = []
 
 
 

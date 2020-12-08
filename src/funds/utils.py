@@ -6,9 +6,8 @@ from src.funds.common import *
 
 def extract_brief_info(file, logger):
     if not os.path.exists(file):
-        logger.error('File %s not found.', file)
-        return []
-
+        logger.error('File %s not found. Can\'t execute update', file)
+        sys.exit(1)
     basic_list = []
 
     with open(file, 'r') as f:
