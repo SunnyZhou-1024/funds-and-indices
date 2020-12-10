@@ -126,8 +126,10 @@ def fetch_fund_basic_info(code):
     rows = tables[0].xpath('table//tr')
     date_row = rows[2]
     date_cell = date_row.xpath('td')
-    if len(date_cell) > 0:
-        establish_date = re.search('\d{4}年\d{2}月\d{2}', date_cell[0].text).group(0)
+    if len(date_cell) > 0 and date_cell[1].text is not None:
+        establish_date = re.search('\d{4}年\d{2}月\d{2}', date_cell[1].text).group(0)
+    else:
+        establish_date = None
     manager_cell = rows[5].xpath('td')[0]
     manager = manager_cell.xpath('a')[0]
     company_cell = rows[4].xpath('td')[0]
@@ -135,7 +137,11 @@ def fetch_fund_basic_info(code):
     host_cell = rows[4].xpath('td')[1]
     host = host_cell.xpath('a')[0]
     amount_cell = rows[3].xpath('td')[0]
-    amount = re.search('\d+\.?\d*', amount_cell.text).group(0)
+    amount = re.search('\d+\.?\d*', amount_cell.text)
+    if amount:
+        amount = amount.group(0)
+    else:
+        amount = None
     #fund_type = rows[1].xpath('td')[1]
 
     last_row = rows[-1]

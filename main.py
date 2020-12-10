@@ -79,9 +79,10 @@ def main():
             continue
         try:
             basic_info = fetch_fund_basic_info(item[0])
-            fees = fetch_fees(item[0])
             today = time.strftime('%Y-%m-%d')
-            history = fetch_net_worth_history(item[0], item[2], item[5] if args.update else basic_info['成立日期'], today)
+            if basic_info['成立日期'] is not None:
+                fees = fetch_fees(item[0])
+                history = fetch_net_worth_history(item[0], item[2], item[5] if args.update else basic_info['成立日期'], today)
 
             basic = {**dict(zip(keys, item)), **basic_info, **{'最后获取日期': today}}
             fund = {'基本概况': basic, '费率详情': fees, '历史净值地址': history}
