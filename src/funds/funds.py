@@ -134,7 +134,7 @@ def fetch_fund_basic_info(code):
 
 def manager_history(fund_code):
     url = 'http://fundf10.eastmoney.com/jjjl_%s.html' % fund_code
-    resp = _get(url)
+    resp = get(url)
     html = etree.HTML(resp.text)
     target_table = html.xpath('//tbody')[1]
     rows = target_table.xpath('tr')
