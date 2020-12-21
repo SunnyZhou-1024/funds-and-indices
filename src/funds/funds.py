@@ -48,14 +48,16 @@ def fetch_net_worth_history(fund_code, fund_name, start_date, end_date=None, is_
 
         return error_code, total_count, data
     
-    index = 1
     total_count = 1000 # must larger size
     size = 260 # there are about 260 workday per year
 
+    err_code, total_count, data = _get_page(fund_code, start_date, end, 1, 50)
     file_name = '%s-%s-%s-%s.json' % (fund_code, fund_name, start_date, end)
     file_name = os.path.join('data', file_name)
     with open(file_name, 'a' if is_update else 'w') as f:
-        while index * size < total_count:
+        pages = round(total_count / size)
+        for i in range(pages):
+            index = i + 1
             err_code, total_count, data = _get_page(fund_code, start_date, end, index, size)
             if err_code == 0:
                 f.write(json.dumps(data, ensure_ascii=False))
@@ -63,7 +65,6 @@ def fetch_net_worth_history(fund_code, fund_name, start_date, end_date=None, is_
                 print('Fetching net worth history of %s from %s to %s. Page %s. Done.' % (fund_code, start_date, end, index))
             else:
                 print('Fetch net worth history of %s at page %s fail.' % (fund_name, index))
-            index = index + 1
 
     return file_name
 
@@ -111,16 +112,6 @@ def fetch_fund_basic_info(code):
         sourcerate = None
         discount = None # undefined
 
-    # tmp = html.xpath('//div[@class="bs_gl"]')[0]
-    # tmp = tmp.xpath('p')[0]
-    # raw_metas = tmp.xpath('child::*')
-    # establish_date = raw_metas[0].xpath('span')[0]
-    # manager = raw_metas[1].xpath('a')[0]
-    # fund_type = raw_metas[2].xpath('span')[0]
-    # company = raw_metas[3].xpath('a')[0]
-    # amount = raw_metas[4].xpath('span')[0]
-    # amount = re.search('\d+\.?\d*', amount.text).group(0)
-
     # locate to the summary 
     tables = html.xpath('//div[@class="detail"]/div[@class="txt_cont"]//div[@class="box"]')
     rows = tables[0].xpath('table//tr')
@@ -156,6 +147,30 @@ def fetch_fund_basic_info(code):
     return {'成立日期': establish_date, '基金经理': manager.text, #'基金类型':fund_type.text, 
             '原始费率': sourcerate, '折扣': discount, '基金公司': company.text, 
             '基金规模':amount, '跟踪指数': index}
+
+def manager_history(fund_code):
+    url = 'http://fundf10.eastmoney.com/jjjl_%s.html' % fund_code
+    resp = _get(url)
+    html = etree.HTML(resp.text)
+    target_table = html.xpath('//tbody')[1]
+    rows = target_table.xpath('tr')
+    managers = []
+    for i, row in enumerate(rows):
+        cols = row.xpath('td')
+        start = cols[0].text
+        end = cols[1].text if cols[1].text != '至今' else time.strftime('%Y-%m-%d')
+        who = [i.text for i in cols[2].xpath('a')]
+        duration = cols[3].text
+        earning_rate = cols[4].text
+        managers.append({
+            'id': i,
+            'start': start,
+            'end': end,
+            'who': who,
+            'duration': duration,
+            'earning_rate': earning_rate
+        })
+    return managers
 
 def fetch_fees(code):
     print('Fetching fees of %s.' % code)
