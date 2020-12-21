@@ -8,22 +8,6 @@ import os
 from .common import *
 from lxml import etree
 
-class FetchingError(Exception):
-    pass
-
-def _get(url):
-    for i in range(3):
-        headers = {
-            'Referer': 'http://fundf10.eastmoney.com/',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36'
-        }
-        resp = requests.get(url=url, headers=headers)
-        if resp.status_code != 200:
-            print('Fetch %s error. Reason: %s. Retry...' % (fund_code, resp.reason))
-            continue
-        else:
-            return resp
-    raise FetchingError('Fetch %s fail in 3 times.' % url)
 
 def fetch_net_worth_history(fund_code, fund_name, start_date, end_date=None, is_update=False, verbose=None):
     end = end_date
@@ -37,7 +21,7 @@ def fetch_net_worth_history(fund_code, fund_name, start_date, end_date=None, is_
         timestamp = time.time() 
         timestamp = int(timestamp * 1000)
         url = url % (fund_code, index, size, start_date, end_date, str(timestamp))
-        resp = _get(url)
+        resp = get(url)
         text = resp.text
         matches = re.search('\{.*\}', text)
         history_str = matches.group(0)
@@ -72,7 +56,7 @@ def get_all_funds_code_and_name(file=None):
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
     }
     url = 'http://fund.eastmoney.com/js/fundcode_search.js'#'http://fund.eastmoney.com/allfund.html'
-    resp = _get(url)
+    resp = get(url)
     text = resp.text.lstrip('var r = ').rstrip(';')
     json_obj = json.loads(text)
     print('Saving all funds info to %s.' % file)
@@ -95,7 +79,7 @@ def fetch_fund_basic_info(code):
     print('Fetching basic info of %s.' % code)
     url = 'http://fundf10.eastmoney.com/jbgk_%s.html' % code
 
-    resp = _get(url)
+    resp = get(url)
     html = etree.HTML(resp.text)
 
     sourcerate = html.xpath('//b[@class="sourcerate"]')
@@ -161,7 +145,7 @@ def fetch_fees(code):
     print('Fetching fees of %s.' % code)
     result = []
     url = 'http://fundf10.eastmoney.com/jjfl_%s.html'  % code
-    resp = _get(url)
+    resp = get(url)
     html = etree.HTML(resp.text)
     boxs = html.xpath('//div[@class="box"]')
 
