@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import argparse
 import csv
 import os
@@ -40,12 +43,15 @@ def move(src, dest, logger):
     os.remove(src)
     os.rename(dest, src)
 
+def clear():
+    pass
 
 def main():
     logger = Logger()
     args = parse_args()
     checkpoint = []
     all_funds = None
+    file_flags = 'w'
 
     if args.reentry and os.path.exists(os.path.join('data', 'checkpoint.txt')):
         with open(os.path.join('data', 'checkpoint.txt'), 'r') as f:
@@ -53,7 +59,8 @@ def main():
             if fetched != '':
                 checkpoint.extend(json.loads(fetched))
         all_funds = get_all_funds_code_and_name()
-        
+        file_flags = 'a'
+
     elif args.update:
         all_funds = extract_brief_info(os.path.join('data', details_of_fund_file), logger)
         checkpoint = []
@@ -62,6 +69,7 @@ def main():
         exist = extract_brief_info(os.path.join('data', details_of_fund_file), logger)
         checkpoint = [ fund[0] for fund in exist]
         all_funds = get_all_funds_code_and_name()
+        file_flags = 'a'
 
     else:
         all_funds = get_all_funds_code_and_name()
@@ -70,10 +78,8 @@ def main():
 
 
     keys = ['基金代码', '基金名称拼音首字母', '基金名称', '基金类型', '基金名称全拼']
-    funds_info = open(os.path.join('data', details_of_fund_file), 'a')
-    if args.update:
-        funds_info.close()
-        funds_info = open(os.path.join('data', 'tmp-' + details_of_fund_file), 'w')
+    funds_info = open(os.path.join('data', details_of_fund_file), file_flags)
+
     for item in all_funds:
         if item[0] in checkpoint:
             continue
@@ -85,7 +91,8 @@ def main():
                 history = fetch_net_worth_history(item[0], item[2], item[5] if args.update else basic_info['成立日期'], today)
 
             basic = {**dict(zip(keys, item)), **basic_info, **{'最后获取日期': today}}
-            fund = {'基本概况': basic, '费率详情': fees, '历史净值地址': history}
+            managers = manager_history(item[0])
+            fund = {'基本概况': basic, '费率详情': fees, '历史净值地址': history, '历任基金经理': managers}
             fund_str = json.dumps(fund, ensure_ascii=False)
             funds_info.write(fund_str)
             funds_info.write('\n')
